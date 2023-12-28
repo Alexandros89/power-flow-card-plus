@@ -735,6 +735,14 @@ export class PowerFlowCardPlus extends LitElement {
       }
     }
 
+    if (individual3.color !== undefined) {
+      if (typeof individual3.color === "object") individual3.color = this.convertColorListToHex(individual3.color);
+      this.style.setProperty("--individualthree-color", individual3.color); /* dynamically update color of entity depending on user's input */
+    }
+    this.style.setProperty(
+      "--icon-individualthree-color",
+      entities.individual3?.color_icon ? "var(--individualthree-color)" : "var(--primary-text-color)"
+    );
     if (individual3.has) {
       const individual3State = this.getEntityStateWatts(entities.individual3?.entity);
       if (individual3State < 0) individual3.invertAnimation = !individual3.invertAnimation;
@@ -946,7 +954,7 @@ export class PowerFlowCardPlus extends LitElement {
       entities.individual2?.color_value ? "var(--individualtwo-color)" : "var(--primary-text-color)"
     );
     this.style.setProperty(
-      "--text-individualtwo-color",
+      "--text-individualthree-color",
       entities.individual3?.color_value ? "var(--individualthree-color)" : "var(--primary-text-color)"
     );
     this.style.setProperty(
@@ -958,7 +966,7 @@ export class PowerFlowCardPlus extends LitElement {
       entities.individual2?.secondary_info?.color_value ? "var(--individualtwo-color)" : "var(--primary-text-color)"
     );
     this.style.setProperty(
-      "--secondary-text-individualtwo-color",
+      "--secondary-text-individualthree-color",
       entities.individual3?.secondary_info?.color_value ? "var(--individualthree-color)" : "var(--primary-text-color)"
     );
 
