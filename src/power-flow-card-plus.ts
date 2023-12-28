@@ -413,7 +413,7 @@ export class PowerFlowCardPlus extends LitElement {
       },
     };
 
-    const getIndividualObject = (field: "individual1" | "individual2") => ({
+    const getIndividualObject = (field: "individual1" | "individual2" | "individual3") => ({
       entity: entities[field]?.entity,
       has: this.hasField(entities[field]),
       displayZero: entities[field]?.display_zero,
@@ -445,7 +445,9 @@ export class PowerFlowCardPlus extends LitElement {
 
     const individual2 = getIndividualObject("individual2");
 
-    type Individual = typeof individual2 & typeof individual1;
+    const individual3 = getIndividualObject("individual3");
+
+    type Individual = typeof individual2 & typeof individual1 & typeof individual3;
 
     const nonFossil = {
       entity: entities.fossil_fuel_percentage?.entity,
@@ -733,6 +735,21 @@ export class PowerFlowCardPlus extends LitElement {
       }
     }
 
+    if (individual3.has) {
+      const individual3State = this.getEntityStateWatts(entities.individual3?.entity);
+      if (individual3State < 0) individual3.invertAnimation = !individual3.invertAnimation;
+      individual3.state = Math.abs(individual3State);
+    }
+    if (individual3.secondary.has) {
+      const individual3SecondaryEntity = this.hass.states[entities.individual3?.secondary_info?.entity!];
+      const individual3SecondaryState = individual3SecondaryEntity.state;
+      if (typeof individual3SecondaryState === "number") {
+        individual3.secondary.state = Math.max(individual3SecondaryState, 0);
+      } else if (typeof individual3SecondaryState === "string") {
+        individual3.secondary.state = individual3SecondaryState;
+      }
+    }
+
     if (home.secondary.has) {
       const homeSecondaryEntity = this.hass.states[entities.home?.secondary_info?.entity!];
       const homeSecondaryState = homeSecondaryEntity.state;
@@ -795,7 +812,9 @@ export class PowerFlowCardPlus extends LitElement {
 
     const totalIndividualConsumption =
       coerceNumber(individual1.state, 0) * (individual1.invertAnimation ? -1 : 1) +
+      coerceNumber(individual3.state, 0) * (individual3.invertAnimation ? -1 : 1) +
       coerceNumber(individual2.state, 0) * (individual2.invertAnimation ? -1 : 1);
+    
 
     const totalHomeConsumption = Math.max(grid.state.toHome + (solar.state.toHome ?? 0) + (battery.state.toHome ?? 0), 0);
 
@@ -873,6 +892,7 @@ export class PowerFlowCardPlus extends LitElement {
       solarToHome: this.circleRate(solar.state.toHome ?? 0, totalLines),
       individual1: this.circleRate(individual1.state ?? 0, totalIndividualConsumption),
       individual2: this.circleRate(individual2.state ?? 0, totalIndividualConsumption),
+      individual3: this.circleRate(individual3.state ?? 0, totalIndividualConsumption),
       nonFossil: this.circleRate(nonFossil.state.power ?? 0, totalLines),
     };
 
@@ -905,6 +925,9 @@ export class PowerFlowCardPlus extends LitElement {
 
     const individual2DisplayState = getIndividualDisplayState(individual2);
 
+    const individual3DisplayState = getIndividualDisplayState(individual3);
+    
+
     this.style.setProperty(
       "--text-non-fossil-color",
       entities.fossil_fuel_percentage?.color_value ? "var(--non-fossil-color)" : "var(--primary-text-color)"
@@ -922,7 +945,10 @@ export class PowerFlowCardPlus extends LitElement {
       "--text-individualtwo-color",
       entities.individual2?.color_value ? "var(--individualtwo-color)" : "var(--primary-text-color)"
     );
-
+    this.style.setProperty(
+      "--text-individualtwo-color",
+      entities.individual3?.color_value ? "var(--individualthree-color)" : "var(--primary-text-color)"
+    );
     this.style.setProperty(
       "--secondary-text-individualone-color",
       entities.individual1?.secondary_info?.color_value ? "var(--individualone-color)" : "var(--primary-text-color)"
@@ -930,6 +956,10 @@ export class PowerFlowCardPlus extends LitElement {
     this.style.setProperty(
       "--secondary-text-individualtwo-color",
       entities.individual2?.secondary_info?.color_value ? "var(--individualtwo-color)" : "var(--primary-text-color)"
+    );
+    this.style.setProperty(
+      "--secondary-text-individualtwo-color",
+      entities.individual3?.secondary_info?.color_value ? "var(--individualthree-color)" : "var(--primary-text-color)"
     );
 
     this.style.setProperty(
@@ -975,6 +1005,7 @@ export class PowerFlowCardPlus extends LitElement {
       homeSecondary: this._templateResults.homeSecondary?.result,
       individual1Secondary: this._templateResults.individual1Secondary?.result,
       individual2Secondary: this._templateResults.individual2Secondary?.result,
+      individual3Secondary: this._templateResults.individual3Secondary?.result,
       nonFossilFuelSecondary: this._templateResults.nonFossilFuelSecondary?.result,
     };
 
@@ -1136,7 +1167,7 @@ export class PowerFlowCardPlus extends LitElement {
           id="power-flow-card-plus"
           style=${this._config.style_card_content ? this._config.style_card_content : ""}
         >
-          ${solar.has || individual2.has || individual1.has || nonFossil.hasPercentage
+          ${solar.has || individual3.has || individual2.has || individual1.has || nonFossil.hasPercentage
             ? html`<div class="row">
                 ${!nonFossil.hasPercentage
                   ? html`<div class="spacer"></div>`
@@ -1223,10 +1254,66 @@ export class PowerFlowCardPlus extends LitElement {
                           : ""}
                       </div>
                     </div>`
-                  : individual2.has || individual1.has
+                  : individual3.has || individual2.has || individual1.has 
                   ? html`<div class="spacer"></div>`
                   : ""}
-                ${individual2.has
+                ${individual3.has
+                  ? html`<div class="circle-container individual3">
+                      <span class="label">${individual3.name}</span>
+                      <div
+                        class="circle"
+                        @click=${(e: { stopPropagation: () => void }) => {
+                          this.openDetails(e, entities.individual3?.entity);
+                        }}
+                        @keyDown=${(e: { key: string; stopPropagation: () => void }) => {
+                          if (e.key === "Enter") {
+                            this.openDetails(e, entities.individual3?.entity);
+                          }
+                        }}
+                      >
+                        ${individualSecondarySpan(individual3, "individual3")}
+                        <ha-icon
+                          id="individual3-icon"
+                          .icon=${individual3.icon}
+                          style="${individual3.secondary.has ? "padding-top: 2px;" : "padding-top: 0px;"}
+                          ${entities.individual3?.display_zero_state !== false || (individual3.state || 0) > (individual3.displayZeroTolerance ?? 0)
+                            ? "padding-bottom: 2px;"
+                            : "padding-bottom: 0px;"}"
+                        ></ha-icon>
+                        ${entities.individual3?.display_zero_state !== false || (individual3.state || 0) > (individual3.displayZeroTolerance ?? 0)
+                          ? html` <span class="individual3">
+                              ${individual3.showDirection
+                                ? html`<ha-icon class="small" .icon=${individual3.invertAnimation ? "mdi:arrow-down" : "mdi:arrow-up"}></ha-icon>`
+                                : ""}${individual3DisplayState}
+                            </span>`
+                          : ""}
+                      </div>
+                      ${this.showLine(individual3.state || 0)
+                        ? html`
+                            <svg width="80" height="30">
+                              <path d="M40 -10 v50" id="individual3" class="${this.styleLine(individual3.state || 0)}" />
+                              ${individual3.state
+                                ? svg`<circle
+                              r="2.4"
+                              class="individual3"
+                              vector-effect="non-scaling-stroke"
+                            >
+                              <animateMotion
+                                dur="${this.additionalCircleRate(entities.individual3?.calculate_flow_rate, newDur.individual3)}s"
+                                repeatCount="indefinite"
+                                calcMode="linear"
+                                keyPoints=${individual3.invertAnimation ? "0;1" : "1;0"}
+                                keyTimes="0;1"
+                              >
+                                <mpath xlink:href="#individual3" />
+                              </animateMotion>
+                            </circle>`
+                                : ""}
+                            </svg>
+                          `
+                        : ""}
+                    </div>`
+                  : individual2.has
                   ? html`<div class="circle-container individual2">
                       <span class="label">${individual2.name}</span>
                       <div
@@ -1481,12 +1568,12 @@ export class PowerFlowCardPlus extends LitElement {
                   />
                 </svg>
               </div>
-              ${this.showLine(individual1.state || 0) && individual2.has && individual1.has
+              ${this.showLine(individual1.state || 0) && individual2.has && individual1.has && individual3.has
                 ? html`<span class="label"></span>`
                 : html` <span class="label">${home.name}</span>`}
             </div>
           </div>
-          ${battery.has || (individual1.has && individual2.has)
+          ${battery.has || (individual1.has && individual2.has && individual3.has)
             ? html`<div class="row">
                 <div class="spacer"></div>
                 ${battery.has
@@ -1604,7 +1691,7 @@ export class PowerFlowCardPlus extends LitElement {
                       <span class="label">${battery.name}</span>
                     </div>`
                   : html`<div class="spacer"></div>`}
-                ${individual2.has && individual1.has
+                ${individual2.has && individual1.has && individual3.has
                   ? html`<div class="circle-container individual1 bottom">
                       ${this.showLine(individual1.state || 0)
                         ? html`
@@ -1667,7 +1754,7 @@ export class PowerFlowCardPlus extends LitElement {
             ? html`<div
                 class="lines ${classMap({
                   high: battery.has,
-                  "individual1-individual2": !battery.has && individual2.has && individual1.has,
+                  "individual1-individual2-individual3": !battery.has && individual2.has && individual1.has && individual3.has,
                 })}"
               >
                 <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice" id="solar-home-flow">
@@ -1699,7 +1786,7 @@ export class PowerFlowCardPlus extends LitElement {
             ? html`<div
                 class="lines ${classMap({
                   high: battery.has,
-                  "individual1-individual2": !battery.has && individual2.has && individual1.has,
+                  "individual1-individual2-individual3": !battery.has && individual2.has && individual1.has && individual3.has,
                 })}"
               >
                 <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice" id="solar-grid-flow">
@@ -1731,7 +1818,7 @@ export class PowerFlowCardPlus extends LitElement {
             ? html`<div
                 class="lines ${classMap({
                   high: battery.has,
-                  "individual1-individual2": !battery.has && individual2.has && individual1.has,
+                  "individual1-individual2-individual3": !battery.has && individual2.has && individual1.has && individual3.has,
                 })}"
               >
                 <svg
@@ -1769,7 +1856,7 @@ export class PowerFlowCardPlus extends LitElement {
             ? html`<div
                 class="lines ${classMap({
                   high: battery.has,
-                  "individual1-individual2": !battery.has && individual2.has && individual1.has,
+                  "individual1-individual2-individual3": !battery.has && individual2.has && individual1.has && individual3.has,
                 })}"
               >
                 <svg
@@ -1807,7 +1894,7 @@ export class PowerFlowCardPlus extends LitElement {
             ? html`<div
                 class="lines ${classMap({
                   high: battery.has,
-                  "individual1-individual2": !battery.has && individual2.has && individual1.has,
+                  "individual1-individual2-individual3": !battery.has && individual2.has && individual1.has && individual3.has,
                 })}"
               >
                 <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice" id="battery-home-flow">
@@ -1839,7 +1926,7 @@ export class PowerFlowCardPlus extends LitElement {
             ? html`<div
                 class="lines ${classMap({
                   high: battery.has,
-                  "individual1-individual2": !battery.has && individual2.has && individual1.has,
+                  "individual1-individual2-individual3": !battery.has && individual2.has && individual1.has && individual3.has,
                 })}"
               >
                 <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice" id="battery-grid-flow">
@@ -1935,6 +2022,7 @@ export class PowerFlowCardPlus extends LitElement {
       homeSecondary: entities.home?.secondary_info?.template,
       individual1Secondary: entities.individual1?.secondary_info?.template,
       individual2Secondary: entities.individual2?.secondary_info?.template,
+      individual3Secondary: entities.individual3?.secondary_info?.template,
       nonFossilFuelSecondary: entities.fossil_fuel_percentage?.secondary_info?.template,
     };
 
@@ -1988,6 +2076,7 @@ export class PowerFlowCardPlus extends LitElement {
       homeSecondary: entities.home?.secondary_info?.template,
 
       individual1Secondary: entities.individual1?.secondary_info?.template,
+      individual3Secondary: entities.individual3?.secondary_info?.template,
       individual2Secondary: entities.individual2?.secondary_info?.template,
     };
 
