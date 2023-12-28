@@ -6,11 +6,13 @@ export const styles = css`
     --clickable-cursor: pointer;
     --individualone-color: #d0cc5b;
     --individualtwo-color: #964cb5;
+    --individualthree-color: #964cb5;
     --non-fossil-color: var(--energy-non-fossil-color, #0f9d58);
     --icon-non-fossil-color: var(--non-fossil-color, #0f9d58);
     --icon-solar-color: var(--energy-solar-color, #ff9800);
     --icon-individualone-color: var(--individualone-color, #d0cc5b);
     --icon-individualtwo-color: var(--individualtwo-color, #964cb5);
+    --icon-individualthree-color: var(--individualtwo-color, #964cb5);
     --icon-grid-color: var(--energy-grid-consumption-color, #488fc2);
     --icon-battery-color: var(--energy-battery-in-color, #f06292);
     --icon-home-color: var(--energy-grid-consumption-color, #488fc2);
@@ -18,9 +20,11 @@ export const styles = css`
     --text-non-fossil-color: var(--primary-text-color);
     --text-individualone-color: var(--primary-text-color);
     --text-individualtwo-color: var(--primary-text-color);
+    --text-individualthree-color: var(--primary-text-color);
     --text-home-color: var(--primary-text-color);
     --secondary-text-individualone-color: var(--primary-text-color);
     --secondary-text-individualtwo-color: var(--primary-text-color);
+    --secondary-text-individualthree-color: var(--primary-text-color);
     --text-battery-state-of-charge-color: var(--primary-text-color);
     --cirlce-grid-color: var(--energy-grid-consumption-color, #488fc2);
     --circle-battery-color: var(--energy-battery-in-color, #f06292);
@@ -206,6 +210,10 @@ export const styles = css`
   #individual2-icon {
     color: var(--icon-individualtwo-color);
   }
+    }
+  #individual3-icon {
+    color: var(--icon-individualthree-color);
+    }
   #solar-icon {
     color: var(--icon-solar-color);
   }
@@ -226,6 +234,17 @@ export const styles = css`
   }
   .individual1 .circle {
     border-color: var(--individualone-color);
+  }
+  .individual3 path,
+  .individual3 circle {
+    stroke: var(--individualthree-color);
+  }
+  circle.individual3 {
+    stroke-width: 4;
+    fill: var(--individualthree-color);
+  }
+  .individual3 .circle {
+    border-color: var(--individualthree-color);
   }
   .circle-container.low-carbon {
     margin-right: 4px;
@@ -384,6 +403,10 @@ export const styles = css`
     color: var(--text-individualtwo-color);
   }
 
+  .individual3 .circle {
+    color: var(--text-individualthree-color);
+  }
+  
   .individual1 span.secondary-info {
     color: var(--secondary-text-individualone-color);
   }
@@ -392,6 +415,10 @@ export const styles = css`
     color: var(--secondary-text-individualtwo-color);
   }
 
+  .individual3 span.secondary-info {
+    color: var(--secondary-text-individualthree-color);
+  }
+  
   .solar span.secondary-info {
     color: var(--secondary-text-solar-color);
   }
